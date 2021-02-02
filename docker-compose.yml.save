@@ -1,0 +1,71 @@
+version: "3.5"
+
+services:
+
+  traefik:
+    image: "traefik:v2.2.0"
+    container_name: "traefik"
+    networks: 
+      - ownnet
+    restart: always
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.http.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    labels:
+      - traefik.frontend.rule=Host(`traefik.raspbuntu.local`)
+      - traefik.port=8080
+         
+  portainer:
+    image: 'portainer/portainer:arm'
+    container_name: 'portainer'
+    restart: always
+    networks:
+      - ownnet
+    ports:
+      - "9000:9000"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/data/portainer:/data"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.portainer.entrypoints=http
+      - traefik.http.routers.portainer.rule=Host(`portainer.raspbuntu.local`)
+      - traefik.http.routers.portainer.service=portainer
+
+  gitlab:
+    image: 'ulm0/gitlab:latest'
+    container_name: "gitlab"
+    restart: always
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.raspbuntu.local'
+        nginx['listen_port'] = 80
+    volumes:
+      - "/srv/gitlab/config:/etc/gitlab"
+      - "/srv/gitlab/logs:/var/log/gitlab"
+      - "/srv/gitlab/data:/var/opt/gitlab"
+    ports:
+      - "23:22"
+      - "81:80"
+    networks:
+      - ownnet
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.gitlab.entrypoints=http
+      - traefik.http.routers.gitlab.port=80
+      - traefik.http.routers.gitlab.network=ownnet
+      - traefik.http.routers.gitlab.rule=Host(`gitlab.raspbuntu.local`)
+      - traefik.http.routers.gitlab.service=gitlab
+      - traefik.http.services.gitlab.loadbalancer.server.port=80
+
+networks:
+  ownnet:
+    driver: bridge
