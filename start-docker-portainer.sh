@@ -9,7 +9,7 @@ docker run -d \
 --restart=always \
 -v /var/run/docker.sock:/var/run/docker.sock \
 -v portainer_data:/data \
---label "traefik.frontend.rule=Host('portainer.raspbuntu.me')" \
+--label "traefik.frontend.rule=Host('portainer.${SITE_DOMAIN}')" \
 --label "traefik.port=9000" \
 --label "traefik.backend=portainer" \
 --label "traefik.frontend.entryPoints=http,https" \
